@@ -1,6 +1,8 @@
 import streamlit as st
 from fpdf import FPDF
 import io
+import os
+import tempfile
 from pypdf import PdfWriter, PdfReader
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
@@ -83,13 +85,21 @@ def convert_to_pdf_bytes(uploaded_file):
             
             img_pdf = FPDF(); img_pdf.add_page()
             
-            # 1. Image
-            img_byte_arr = io.BytesIO()
-            image.save(img_byte_arr, format='JPEG', quality=75, optimize=True)
-            # CORRECTION 1 : Ajout de type='JPG' pour éviter l'erreur rfind
-            img_pdf.image(img_byte_arr, x=10, y=10, w=190, type='JPG')
+            # ASTUCE FICHIER TEMPORAIRE
+            # On crée un vrai fichier temporaire sur le disque du serveur
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                image.save(tmp_file.name, format='JPEG', quality=75, optimize=True)
+                tmp_path = tmp_file.name
+
+            try:
+                # FPDF peut maintenant lire le fichier via son chemin (string)
+                img_pdf.image(tmp_path, x=10, y=10, w=190)
+            finally:
+                # Nettoyage : on supprime le fichier temporaire
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
             
-            # 2. Watermark
+            # Watermark
             apply_watermark_diagonal(img_pdf)
             
             return PdfReader(io.BytesIO(bytes(img_pdf.output())))
@@ -198,12 +208,19 @@ if generate_click:
         pdf.set_font("Helvetica", '', 10); pdf.multi_cell(0, 5, "Ich bestaetige, dass die oben gemachten Angaben wahrheitsgemaess sind."); pdf.ln(5)
         
         if canvas_result.image_data is not None:
+            # TRAITEMENT SIGNATURE (ASTUCE FICHIER TEMP)
             sign_img = Image.fromarray(canvas_result.image_data.astype('uint8'))
-            s_buf = io.BytesIO()
-            sign_img.save(s_buf, format="PNG")
             
-            # CORRECTION 2 : Ajout de type='PNG' pour éviter l'erreur rfind
-            pdf.image(s_buf, x=10, w=50, type='PNG')
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sign:
+                sign_img.save(tmp_sign.name, format="PNG")
+                tmp_sign_path = tmp_sign.name
+            
+            try:
+                # On passe le chemin du fichier (string) et non le buffer
+                pdf.image(tmp_sign_path, x=10, w=50)
+            finally:
+                if os.path.exists(tmp_sign_path):
+                    os.unlink(tmp_sign_path)
             
             pdf.cell(0, 5, "Unterschrift", ln=1)
         
@@ -229,7 +246,6 @@ if generate_click:
         if not no_schufa_mode: add_files(u_schufa)
         add_files(u_id)
         
-        # VERROUILLAGE PDF
         if not st.session_state.is_premium:
             owner_pwd = str(uuid.uuid4())
             merger.encrypt("", owner_pwd)
