@@ -12,20 +12,26 @@ import requests
 # --- CONFIGURATION ---
 st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout="centered")
 
-# --- CONFIGURATION GUMROAD (CORRIGÉE AVEC L'ID) ---
-# Gumroad exige l'ID spécifique pour votre produit
+# ==========================================
+# ZONE DE CONFIGURATION GUMROAD (A MODIFIER)
+# ==========================================
+
+# 1. LE LIEN POUR VOS CLIENTS (Copiez ici le lien qui marche dans votre navigateur)
+GUMROAD_LINK = "https://germanflatmate.gumroad.com/l/premium"
+
+# 2. L'IDENTIFIANT TECHNIQUE (Ne touchez pas, c'est celui donné par l'erreur Gumroad)
 GUMROAD_PRODUCT_ID = "8Dz3oaoMvtqcLt4Q6967JA=="
 
-# Votre Token (Vous devez remettre le vôtre ici s'il a changé, sinon laissez celui que vous aviez)
-# Assurez-vous que c'est bien celui généré dans Settings > Advanced > OAuth
+# 3. VOTRE TOKEN SECRET (Remettez le vôtre ici)
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
+
+# ==========================================
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
     """Vérifie la licence via l'API Gumroad avec l'ID produit"""
     clean_key = key.strip()
     
-    # Backdoor pour vous (pour tester sans payer à chaque fois)
     if clean_key == "BERLIN2025": 
         return True
         
@@ -33,7 +39,7 @@ def verify_license(key):
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_id": GUMROAD_PRODUCT_ID,  # On utilise l'ID maintenant
+                "product_id": GUMROAD_PRODUCT_ID, # On utilise l'ID technique ici
                 "license_key": clean_key,
                 "increment_uses_count": "false"
             },
@@ -41,7 +47,6 @@ def verify_license(key):
         )
         data = response.json()
         
-        # Vérification stricte
         if data.get("success") and not data.get("purchase", {}).get("refunded"):
             return True
         else:
@@ -83,13 +88,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (MONÉTISATION) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
     
-    # Lien Gumroad (Utilisez votre permalink 'premium' pour l'URL, c'est plus joli)
-    st.markdown(f"[👉 **Purchase License Key**](https://germanflatmate.gumroad.com/l/premium)") 
+    # On utilise la variable définie en haut
+    st.markdown(f"[👉 **Purchase License Key**]({GUMROAD_LINK})") 
     
     st.write("---")
     input_code = st.text_input("Enter License Key (from email):").strip()
@@ -98,7 +103,7 @@ with st.sidebar:
         if verify_license(input_code):
             st.session_state.is_premium = True
             st.success("✅ License Valid! Premium Unlocked.")
-            st.rerun() # Rafraîchit la page pour enlever le watermark immédiatement
+            st.rerun()
         else:
             st.error("❌ Invalid License Key.")
             st.session_state.is_premium = False
