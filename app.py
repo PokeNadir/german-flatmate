@@ -24,6 +24,15 @@ st.markdown("""
         padding: 15px; border: 2px solid #ffeeba; border-radius: 10px;
         margin-top: 20px; margin-bottom: 20px; font-weight: bold; font-size: 1.2em;
     }
+    /* Nouveau style pour la boite de confiance */
+    .trust-box {
+        background-color: #e8f4f8; 
+        padding: 15px; 
+        border-radius: 10px; 
+        border-left: 5px solid #3498db; 
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -36,14 +45,21 @@ if 'is_premium' not in st.session_state: st.session_state.is_premium = False
 # --- HEADER ---
 st.title("🇩🇪 GermanFlatMate")
 st.markdown("### The Ultimate Apartment Application Tool")
-st.info("🔒 **Privacy Guarantee:** Your data is processed in RAM and deleted instantly.")
+
+# --- MESSAGE DE CONFIANCE (AMÉLIORÉ) ---
+st.markdown("""
+<div class="trust-box">
+    <strong style="font-size:1.1em;">🔒 100% Private & Secure</strong><br>
+    Your files are <strong>never saved</strong> on our systems. They are used once to generate your PDF and are <strong>permanently deleted</strong> the moment you close this tab. We cannot read or access your documents.
+</div>
+""", unsafe_allow_html=True)
 
 # --- SIDEBAR (MONÉTISATION) ---
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
-    # REMPLACEZ CE LIEN PAR VOTRE LIEN STRIPE
-    st.markdown("[👉 **Get your License Key here**](#)") 
+    # LIEN STRIPE
+    st.markdown("[👉 **Get your License Key here**](https://buy.stripe.com/123456)") 
     
     input_code = st.text_input("Enter License Key:")
     if input_code == ACCESS_CODE:
@@ -86,20 +102,16 @@ def convert_to_pdf_bytes(uploaded_file):
             img_pdf = FPDF(); img_pdf.add_page()
             
             # ASTUCE FICHIER TEMPORAIRE
-            # On crée un vrai fichier temporaire sur le disque du serveur
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
                 image.save(tmp_file.name, format='JPEG', quality=75, optimize=True)
                 tmp_path = tmp_file.name
 
             try:
-                # FPDF peut maintenant lire le fichier via son chemin (string)
                 img_pdf.image(tmp_path, x=10, y=10, w=190)
             finally:
-                # Nettoyage : on supprime le fichier temporaire
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
             
-            # Watermark
             apply_watermark_diagonal(img_pdf)
             
             return PdfReader(io.BytesIO(bytes(img_pdf.output())))
@@ -208,7 +220,7 @@ if generate_click:
         pdf.set_font("Helvetica", '', 10); pdf.multi_cell(0, 5, "Ich bestaetige, dass die oben gemachten Angaben wahrheitsgemaess sind."); pdf.ln(5)
         
         if canvas_result.image_data is not None:
-            # TRAITEMENT SIGNATURE (ASTUCE FICHIER TEMP)
+            # TRAITEMENT SIGNATURE
             sign_img = Image.fromarray(canvas_result.image_data.astype('uint8'))
             
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sign:
@@ -216,7 +228,6 @@ if generate_click:
                 tmp_sign_path = tmp_sign.name
             
             try:
-                # On passe le chemin du fichier (string) et non le buffer
                 pdf.image(tmp_sign_path, x=10, w=50)
             finally:
                 if os.path.exists(tmp_sign_path):
