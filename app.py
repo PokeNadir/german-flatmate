@@ -18,7 +18,7 @@ GUMROAD_PRODUCT_ID = "8Dz3oaoMvtqcLt4Q6967JA=="
 
 # Votre Token (Vous devez remettre le vôtre ici s'il a changé, sinon laissez celui que vous aviez)
 # Assurez-vous que c'est bien celui généré dans Settings > Advanced > OAuth
-GUMROAD_ACCESS_TOKEN = "inserez_votre_access_token_ici" 
+GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
@@ -174,3 +174,4 @@ with col2:
 
 st.subheader("2️⃣ Legal Questions")
 c1, c2 = st.columns(
+
