@@ -4,7 +4,7 @@ import io
 from pypdf import PdfWriter, PdfReader
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
-import uuid # Pour générer un mot de passe aléatoire unique
+import uuid
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout="centered")
@@ -40,6 +40,7 @@ st.info("🔒 **Privacy Guarantee:** Your data is processed in RAM and deleted i
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
+    # REMPLACEZ CE LIEN PAR VOTRE LIEN STRIPE
     st.markdown("[👉 **Get your License Key here**](#)") 
     
     input_code = st.text_input("Enter License Key:")
@@ -54,22 +55,13 @@ with st.sidebar:
 def apply_watermark_diagonal(pdf_obj):
     """Applique le watermark en diagonale si non premium"""
     if not st.session_state.is_premium:
-        pdf_obj.set_font("Helvetica", 'B', 40) # Police grosse
-        pdf_obj.set_text_color(220, 220, 220) # Gris clair (filigrane)
-        
-        # Centre de la page A4 (210x297) -> env 105, 148
-        # On utilise rotate(angle, x, y) pour tourner autour du centre
+        pdf_obj.set_font("Helvetica", 'B', 40)
+        pdf_obj.set_text_color(220, 220, 220)
         pdf_obj.rotate(45, 105, 148)
-        
-        # On écrit le texte centré
-        # Astuce : on écrit à une position X calculée pour que ce soit centré visuellement
         text = "DEMO - GermanFlatMate.com"
         width = pdf_obj.get_string_width(text)
         x_start = (210 - width) / 2
-        
         pdf_obj.text(x_start, 148, text)
-        
-        # On remet la rotation à 0 pour la suite
         pdf_obj.rotate(0)
 
 def convert_to_pdf_bytes(uploaded_file):
@@ -91,17 +83,20 @@ def convert_to_pdf_bytes(uploaded_file):
             
             img_pdf = FPDF(); img_pdf.add_page()
             
-            # 1. Image d'abord
+            # 1. Image
             img_byte_arr = io.BytesIO()
             image.save(img_byte_arr, format='JPEG', quality=75, optimize=True)
-            img_pdf.image(img_byte_arr, x=10, y=10, w=190)
+            # CORRECTION 1 : Ajout de type='JPG' pour éviter l'erreur rfind
+            img_pdf.image(img_byte_arr, x=10, y=10, w=190, type='JPG')
             
-            # 2. Watermark PAR DESSUS l'image
+            # 2. Watermark
             apply_watermark_diagonal(img_pdf)
             
             return PdfReader(io.BytesIO(bytes(img_pdf.output())))
             
-        except Exception: return None
+        except Exception as e:
+            st.error(f"Error processing image: {e}")
+            return None
 
 # --- DICTIONNAIRES ---
 jobs_mapping = {
@@ -167,20 +162,15 @@ if generate_click:
         
         class PDF(FPDF):
             def header(self):
-                # BANDEAU BLEU
                 self.set_fill_color(0, 51, 102)
                 self.rect(0, 0, 210, 30, 'F')
                 self.set_text_color(255, 255, 255); self.set_font('Helvetica', 'B', 20); self.set_y(10)
                 self.cell(0, 10, 'Bewerbungsmappe', ln=True, align='C'); self.ln(20)
-                
-                # WATERMARK DIAGONAL (Appliqué à chaque page générée par FPDF)
                 apply_watermark_diagonal(self)
 
         pdf = PDF(); pdf.add_page()
         
-        # TEXTE
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Helvetica", '', 11)
+        pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 11)
         pdf.multi_cell(0, 6, f"Sehr geehrte Damen und Herren,\n\nhiermit bewerbe ich mich ({full_name}) verbindlich fuer die Wohnung. Anbei finden Sie meine vollstaendigen Unterlagen.", align='L')
         pdf.ln(5)
         
@@ -206,10 +196,16 @@ if generate_click:
         pdf.ln(10)
         
         pdf.set_font("Helvetica", '', 10); pdf.multi_cell(0, 5, "Ich bestaetige, dass die oben gemachten Angaben wahrheitsgemaess sind."); pdf.ln(5)
+        
         if canvas_result.image_data is not None:
             sign_img = Image.fromarray(canvas_result.image_data.astype('uint8'))
-            s_buf = io.BytesIO(); sign_img.save(s_buf, format="PNG")
-            pdf.image(s_buf, x=10, w=50); pdf.cell(0, 5, "Unterschrift", ln=1)
+            s_buf = io.BytesIO()
+            sign_img.save(s_buf, format="PNG")
+            
+            # CORRECTION 2 : Ajout de type='PNG' pour éviter l'erreur rfind
+            pdf.image(s_buf, x=10, w=50, type='PNG')
+            
+            pdf.cell(0, 5, "Unterschrift", ln=1)
         
         master = bytes(pdf.output())
         merger = PdfWriter(); merger.append(io.BytesIO(master))
@@ -219,10 +215,7 @@ if generate_click:
             p2.set_fill_color(0, 51, 102); p2.rect(0, 0, 210, 30, 'F')
             p2.set_text_color(255, 255, 255); p2.set_font("Helvetica", 'B', 20); p2.set_y(10)
             p2.cell(0, 10, 'Bonitaet (Credit Score)', ln=True, align='C'); p2.ln(25)
-            
-            # Watermark aussi sur cette page
             apply_watermark_diagonal(p2)
-
             p2.set_text_color(0, 0, 0); p2.set_font("Helvetica", '', 12)
             p2.multi_cell(0, 7, f"Da ich neu in Deutschland bin, habe ich noch keine SCHUFA.\nAnbei meine Einkommensnachweise.\n\n{full_name}")
             merger.append(io.BytesIO(bytes(p2.output())))
@@ -236,13 +229,9 @@ if generate_click:
         if not no_schufa_mode: add_files(u_schufa)
         add_files(u_id)
         
-        # --- VERROUILLAGE / CRYPTAGE (NOUVEAU) ---
-        # Si on est en mode DEMO (non premium), on verrouille le PDF
+        # VERROUILLAGE PDF
         if not st.session_state.is_premium:
-            # Génération d'un mot de passe propriétaire impossible à deviner
             owner_pwd = str(uuid.uuid4())
-            # On encrypte. user_pwd="" signifie que tout le monde peut l'ouvrir
-            # Mais sans owner_pwd, on ne peut pas modifier.
             merger.encrypt("", owner_pwd)
 
         buf = io.BytesIO(); merger.write(buf)
