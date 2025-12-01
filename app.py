@@ -15,42 +15,24 @@ st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout
 # ==========================================
 # ZONE DE CONFIGURATION GUMROAD
 # ==========================================
-
-# 1. LE PERMALINK EXACT (La fin de votre URL)
 GUMROAD_PERMALINK = "germanflatmatepremium"
-
-# 2. VOTRE TOKEN SECRET (Remettez le vôtre ici)
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
-
 # ==========================================
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
-    """Vérifie la licence via l'API Gumroad avec le PERMALINK"""
+    """Vérifie la licence via l'API Gumroad"""
     clean_key = key.strip()
-    
-    # Backdoor pour vous
-    if clean_key == "BERLIN2025": 
-        return True
-        
+    if clean_key == "BERLIN2025": return True
     try:
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
-            data={
-                "product_permalink": GUMROAD_PERMALINK, # On utilise le permalink
-                "license_key": clean_key,
-                "increment_uses_count": "false"
-            },
+            data={"product_permalink": GUMROAD_PERMALINK, "license_key": clean_key, "increment_uses_count": "false"},
             headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN.strip()}"}
         )
         data = response.json()
-        
-        if data.get("success") and not data.get("purchase", {}).get("refunded"):
-            return True
-        else:
-            return False
-    except Exception:
-        return False
+        return True if (data.get("success") and not data.get("purchase", {}).get("refunded")) else False
+    except Exception: return False
 
 # --- CSS ---
 st.markdown("""
@@ -66,6 +48,8 @@ st.markdown("""
         background-color: #e8f4f8; padding: 15px; border-radius: 10px; 
         border-left: 5px solid #3498db; margin-bottom: 20px; color: #2c3e50;
     }
+    /* Petit style pour l'impressum */
+    .impressum {font-size: 0.8em; color: #666;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,12 +70,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR ---
+# --- SIDEBAR (AVEC IMPRESSUM) ---
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
     
-    # Lien dynamique vers la page d'achat
     buy_link = f"https://germanflatmate.gumroad.com/l/{GUMROAD_PERMALINK}"
     st.markdown(f"[👉 **Purchase License Key**]({buy_link})") 
     
@@ -101,14 +84,27 @@ with st.sidebar:
     if st.button("Verify Key"):
         if verify_license(input_code):
             st.session_state.is_premium = True
-            st.success("✅ License Valid! Premium Unlocked.")
+            st.success("✅ License Valid!")
             st.rerun()
         else:
-            st.error("❌ Invalid License Key.")
+            st.error("❌ Invalid Key.")
             st.session_state.is_premium = False
             
     if st.session_state.is_premium:
-        st.success("You are in Premium Mode")
+        st.success("Premium Active 🌟")
+
+    # --- SECTION LÉGALE AJOUTÉE ---
+    st.write("---")
+    st.markdown("### ⚖️ Legal & Contact")
+    st.markdown("""
+    <div class="impressum">
+    <strong>Contact:</strong><br>
+    info@germanflatmate.com<br><br>
+    <strong>Impressum:</strong><br>
+    GermanFlatMate is a service provided by the site operator.<br>
+    Content responsibility acc. to § 5 TMG.<br>
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- HELPER FUNCTIONS ---
 def apply_watermark_diagonal(pdf_obj):
