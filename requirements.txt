@@ -4,3 +4,4 @@ pypdf
 Pillow
 numpy
 streamlit-drawable-canvas
+requests  
