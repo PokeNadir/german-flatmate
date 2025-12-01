@@ -7,12 +7,46 @@ from pypdf import PdfWriter, PdfReader
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 import uuid
+import requests # Pour parler à Gumroad
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout="centered")
 
-# --- SECRET BUSINESS ---
-ACCESS_CODE = "BERLIN2025"
+# --- CONFIGURATION GUMROAD (A REMPLIR) ---
+# Le "Permalink" est la fin de votre URL Gumroad. 
+# Si votre lien est https://gumroad.com/l/azerty, alors le permalink est "azerty"
+GUMROAD_PRODUCT_PERMALINK = "https://germanflatmate.gumroad.com/l/premium" 
+
+# Le Token que vous avez généré dans Settings > Advanced
+# Dans un vrai projet, on cache ça dans st.secrets, mais pour démarrer mettez le ici.
+GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
+
+# --- FONCTION DE VÉRIFICATION DE LICENCE ---
+def verify_license(key):
+    """Demande à Gumroad si la clé est valide"""
+    # Si l'utilisateur tape le "Backdoor" (optionnel pour vous pour tester)
+    if key == "ADMIN_TEST_123": 
+        return True
+        
+    try:
+        response = requests.post(
+            "https://api.gumroad.com/v2/licenses/verify",
+            data={
+                "product_permalink": GUMROAD_PRODUCT_PERMALINK,
+                "license_key": key,
+                "increment_uses_count": "false" # On ne compte pas les utilisations pour l'instant
+            },
+            headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN}"}
+        )
+        data = response.json()
+        
+        # Si success est True et que la licence n'est pas remboursée
+        if data.get("success") and not data.get("purchase", {}).get("refunded"):
+            return True
+        else:
+            return False
+    except Exception:
+        return False
 
 # --- CSS ---
 st.markdown("""
@@ -24,14 +58,9 @@ st.markdown("""
         padding: 15px; border: 2px solid #ffeeba; border-radius: 10px;
         margin-top: 20px; margin-bottom: 20px; font-weight: bold; font-size: 1.2em;
     }
-    /* Nouveau style pour la boite de confiance */
     .trust-box {
-        background-color: #e8f4f8; 
-        padding: 15px; 
-        border-radius: 10px; 
-        border-left: 5px solid #3498db; 
-        margin-bottom: 20px;
-        color: #2c3e50;
+        background-color: #e8f4f8; padding: 15px; border-radius: 10px; 
+        border-left: 5px solid #3498db; margin-bottom: 20px; color: #2c3e50;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -46,32 +75,38 @@ if 'is_premium' not in st.session_state: st.session_state.is_premium = False
 st.title("🇩🇪 GermanFlatMate")
 st.markdown("### The Ultimate Apartment Application Tool")
 
-# --- MESSAGE DE CONFIANCE (AMÉLIORÉ) ---
 st.markdown("""
 <div class="trust-box">
     <strong style="font-size:1.1em;">🔒 100% Private & Secure</strong><br>
-    Your files are <strong>never saved</strong> on our systems. They are used once to generate your PDF and are <strong>permanently deleted</strong> the moment you close this tab. We cannot read or access your documents.
+    Your files are <strong>never saved</strong> on our systems. They are used once to generate your PDF and are <strong>permanently deleted</strong> the moment you close this tab.
 </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (MONÉTISATION) ---
+# --- SIDEBAR (MONÉTISATION VIA GUMROAD) ---
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
-    # LIEN STRIPE
-    st.markdown("[👉 **Get your License Key here**](https://buy.stripe.com/123456)") 
     
-    input_code = st.text_input("Enter License Key:")
-    if input_code == ACCESS_CODE:
-        st.session_state.is_premium = True
-        st.success("✅ Premium Unlocked!")
-    elif input_code:
-        st.error("❌ Invalid Code")
-        st.session_state.is_premium = False
+    # LIEN VERS VOTRE PAGE GUMROAD
+    gumroad_link = f"https://gumroad.com/l/{GUMROAD_PRODUCT_PERMALINK}"
+    st.markdown(f"[👉 **Purchase License Key**]({gumroad_link})") 
+    
+    st.write("---")
+    input_code = st.text_input("Enter License Key (from email):").strip()
+    
+    if st.button("Verify Key"):
+        if verify_license(input_code):
+            st.session_state.is_premium = True
+            st.success("✅ License Valid! Premium Unlocked.")
+        else:
+            st.error("❌ Invalid License Key.")
+            st.session_state.is_premium = False
+            
+    if st.session_state.is_premium:
+        st.success("You are in Premium Mode")
 
 # --- HELPER FUNCTIONS ---
 def apply_watermark_diagonal(pdf_obj):
-    """Applique le watermark en diagonale si non premium"""
     if not st.session_state.is_premium:
         pdf_obj.set_font("Helvetica", 'B', 40)
         pdf_obj.set_text_color(220, 220, 220)
@@ -84,14 +119,12 @@ def apply_watermark_diagonal(pdf_obj):
 
 def convert_to_pdf_bytes(uploaded_file):
     if uploaded_file is None: return None
-    
     if uploaded_file.type == "application/pdf":
         return PdfReader(uploaded_file)
     else:
         try:
             image = Image.open(uploaded_file)
             if image.mode in ("RGBA", "P"): image = image.convert("RGB")
-            
             # Compression
             max_width = 1600
             if image.width > max_width:
@@ -101,7 +134,6 @@ def convert_to_pdf_bytes(uploaded_file):
             
             img_pdf = FPDF(); img_pdf.add_page()
             
-            # ASTUCE FICHIER TEMPORAIRE
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
                 image.save(tmp_file.name, format='JPEG', quality=75, optimize=True)
                 tmp_path = tmp_file.name
@@ -109,16 +141,11 @@ def convert_to_pdf_bytes(uploaded_file):
             try:
                 img_pdf.image(tmp_path, x=10, y=10, w=190)
             finally:
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
+                if os.path.exists(tmp_path): os.unlink(tmp_path)
             
             apply_watermark_diagonal(img_pdf)
-            
             return PdfReader(io.BytesIO(bytes(img_pdf.output())))
-            
-        except Exception as e:
-            st.error(f"Error processing image: {e}")
-            return None
+        except Exception: return None
 
 # --- DICTIONNAIRES ---
 jobs_mapping = {
@@ -220,19 +247,14 @@ if generate_click:
         pdf.set_font("Helvetica", '', 10); pdf.multi_cell(0, 5, "Ich bestaetige, dass die oben gemachten Angaben wahrheitsgemaess sind."); pdf.ln(5)
         
         if canvas_result.image_data is not None:
-            # TRAITEMENT SIGNATURE
             sign_img = Image.fromarray(canvas_result.image_data.astype('uint8'))
-            
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sign:
                 sign_img.save(tmp_sign.name, format="PNG")
                 tmp_sign_path = tmp_sign.name
-            
             try:
                 pdf.image(tmp_sign_path, x=10, w=50)
             finally:
-                if os.path.exists(tmp_sign_path):
-                    os.unlink(tmp_sign_path)
-            
+                if os.path.exists(tmp_sign_path): os.unlink(tmp_sign_path)
             pdf.cell(0, 5, "Unterschrift", ln=1)
         
         master = bytes(pdf.output())
