@@ -17,7 +17,7 @@ st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout
 # ==========================================
 
 # 1. LE LIEN POUR VOS CLIENTS (Copiez ici le lien qui marche dans votre navigateur)
-GUMROAD_LINK = "https://germanflatmate.gumroad.com/l/premium"
+GUMROAD_LINK = "https://germanflatmate.gumroad.com/l/germanflatmatepremium"
 
 # 2. L'IDENTIFIANT TECHNIQUE (Ne touchez pas, c'est celui donné par l'erreur Gumroad)
 GUMROAD_PRODUCT_ID = "8Dz3oaoMvtqcLt4Q6967JA=="
@@ -347,3 +347,4 @@ Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
 Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
+
