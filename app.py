@@ -13,25 +13,23 @@ import requests
 st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout="centered")
 
 # ==========================================
-# ZONE DE CONFIGURATION GUMROAD (A MODIFIER)
+# ZONE DE CONFIGURATION GUMROAD
 # ==========================================
 
-# 1. LE LIEN POUR VOS CLIENTS (Copiez ici le lien qui marche dans votre navigateur)
-GUMROAD_LINK = "https://germanflatmate.gumroad.com/l/germanflatmatepremium"
+# 1. LE PERMALINK EXACT (La fin de votre URL)
+GUMROAD_PERMALINK = "germanflatmatepremium"
 
-# 2. L'IDENTIFIANT TECHNIQUE (Ne touchez pas, c'est celui donné par l'erreur Gumroad)
-GUMROAD_PRODUCT_ID = "8Dz3oaoMvtqcLt4Q6967JA=="
-
-# 3. VOTRE TOKEN SECRET (Remettez le vôtre ici)
+# 2. VOTRE TOKEN SECRET (Remettez le vôtre ici)
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
 
 # ==========================================
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
-    """Vérifie la licence via l'API Gumroad avec l'ID produit"""
+    """Vérifie la licence via l'API Gumroad avec le PERMALINK"""
     clean_key = key.strip()
     
+    # Backdoor pour vous
     if clean_key == "BERLIN2025": 
         return True
         
@@ -39,7 +37,7 @@ def verify_license(key):
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_id": GUMROAD_PRODUCT_ID, # On utilise l'ID technique ici
+                "product_permalink": GUMROAD_PERMALINK, # On utilise le permalink
                 "license_key": clean_key,
                 "increment_uses_count": "false"
             },
@@ -93,8 +91,9 @@ with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€9.90**.")
     
-    # On utilise la variable définie en haut
-    st.markdown(f"[👉 **Purchase License Key**]({GUMROAD_LINK})") 
+    # Lien dynamique vers la page d'achat
+    buy_link = f"https://germanflatmate.gumroad.com/l/{GUMROAD_PERMALINK}"
+    st.markdown(f"[👉 **Purchase License Key**]({buy_link})") 
     
     st.write("---")
     input_code = st.text_input("Enter License Key (from email):").strip()
@@ -347,4 +346,3 @@ Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
 Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
-
