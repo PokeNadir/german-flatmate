@@ -15,7 +15,7 @@ st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout
 # --- CONFIGURATION GUMROAD (A REMPLIR) ---
 # Le "Permalink" est la fin de votre URL Gumroad. 
 # Si votre lien est https://gumroad.com/l/azerty, alors le permalink est "azerty"
-GUMROAD_PRODUCT_PERMALINK = "premium" 
+GUMROAD_PRODUCT_PERMALINK = "germanflatmatepremium" 
 
 # Le Token que vous avez généré dans Settings > Advanced
 # Dans un vrai projet, on cache ça dans st.secrets, mais pour démarrer mettez le ici.
@@ -342,4 +342,5 @@ Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
 Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
+
 
