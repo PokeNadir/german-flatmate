@@ -21,31 +21,42 @@ GUMROAD_PRODUCT_PERMALINK = "germanflatmatepremium"
 # Dans un vrai projet, on cache ça dans st.secrets, mais pour démarrer mettez le ici.
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
 
-# --- FONCTION DE VÉRIFICATION DE LICENCE ---
+# --- FONCTION DE VÉRIFICATION DE LICENCE (MODE DEBUG) ---
 def verify_license(key):
-    """Demande à Gumroad si la clé est valide"""
-    # Si l'utilisateur tape le "Backdoor" (optionnel pour vous pour tester)
-    if key == "ADMIN_TEST_123": 
-        return True
-        
+    """Version temporaire pour afficher les erreurs à l'écran"""
+    
+    # Nettoyage de la clé (enlève les espaces invisibles avant/après)
+    clean_key = key.strip()
+    
+    st.info(f"⏳ Vérification de la clé : {clean_key}...")
+    st.info(f"🔗 Produit visé : {GUMROAD_PRODUCT_PERMALINK}")
+    
     try:
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
                 "product_permalink": GUMROAD_PRODUCT_PERMALINK,
-                "license_key": key,
-                "increment_uses_count": "false" # On ne compte pas les utilisations pour l'instant
+                "license_key": clean_key,
+                "increment_uses_count": "false"
             },
-            headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN}"}
+            # On retire l'espace éventuel dans le token aussi
+            headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN.strip()}"}
         )
+        
         data = response.json()
         
-        # Si success est True et que la licence n'est pas remboursée
+        # --- LE MOUCHARD : AFFICHER LA RÉPONSE DE GUMROAD ---
+        st.write("🔴 RÉPONSE BRUTE DE GUMROAD (Lisez ceci) :")
+        st.json(data)
+        # ----------------------------------------------------
+        
         if data.get("success") and not data.get("purchase", {}).get("refunded"):
             return True
         else:
             return False
-    except Exception:
+            
+    except Exception as e:
+        st.error(f"Erreur technique de connexion : {e}")
         return False
 
 # --- CSS ---
@@ -342,5 +353,6 @@ Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
 Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
+
 
 
