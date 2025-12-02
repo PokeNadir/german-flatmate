@@ -73,7 +73,7 @@ st.markdown("""
 # --- SIDEBAR (AVEC IMPRESSUM) ---
 with st.sidebar:
     st.header("💎 Premium Access")
-    st.write("Unlock the watermark-free & editable version for **€9.90**.")
+    st.write("Unlock the watermark-free & editable version for **€2.90**.")
     
     buy_link = f"https://germanflatmate.gumroad.com/l/{GUMROAD_PERMALINK}"
     st.markdown(f"[👉 **Purchase License Key**]({buy_link})") 
@@ -342,3 +342,4 @@ Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
 Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
+
