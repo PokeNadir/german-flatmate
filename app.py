@@ -128,7 +128,7 @@ with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€2.90**.")
     
-    st.markdown(f"[👉 **Purchase License Key**](https://germanflatmate.gumroad.com/l/premium)") 
+    st.markdown(f"[👉 **Purchase License Key**](https://germanflatmate.gumroad.com/l/germanflatmatepremium)") 
     
     st.write("---")
     input_code = st.text_input("Enter License Key (from email):").strip()
@@ -408,3 +408,4 @@ with st.expander("Is my data safe?"):
     st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
 
 st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
+
