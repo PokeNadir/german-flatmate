@@ -343,3 +343,18 @@ Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
 
+# ... (Après le bloc if generate_click ou à la toute fin du fichier)
+
+st.markdown("---")
+st.subheader("💡 Frequently Asked Questions")
+
+with st.expander("How does this tool help me find a flat in Germany?"):
+    st.write("German landlords expect a standard 'Bewerbungsmappe'. Sending just an email isn't enough. GermanFlatMate generates the Cover Letter (Anschreiben) and Self-Disclosure (Mieterselbstauskunft) automatically in perfect German.")
+
+with st.expander("What if I don't have a SCHUFA score?"):
+    st.write("This is a common problem for expats and students. Our tool includes a specific legal clause explaining your situation to the landlord and offering alternative proof of solvency (like bank statements), which increases your chances significantly.")
+
+with st.expander("Is my data safe?"):
+    st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
+
+st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
