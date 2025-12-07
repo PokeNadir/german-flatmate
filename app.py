@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from fpdf import FPDF
 import io
 import os
@@ -16,38 +17,63 @@ st.set_page_config(page_title="GermanFlatMate | German Rental Application Genera
 # ZONE DE CONFIGURATION
 # ==========================================
 GUMROAD_PERMALINK = "germanflatmatepremium"
-
-# ⚠️ REMPLACEZ PAR VOTRE TOKEN GUMROAD
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
-
-# NOTE: L'ID Google Analytics est maintenant géré par le fichier seo.py
+GA_ID = "G-F3PX9QD8EL" 
 # ==========================================
 
-# --- FONCTION DE VÉRIFICATION DE LICENCE ---
+# --- GOOGLE ANALYTICS (MÉTHODE INFAILLIBLE) ---
+# On injecte le script directement dans le corps de la page.
+# C'est moins "propre" pour le SEO pur, mais 100% fonctionnel pour le tracking.
+def inject_ga():
+    ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_ID}');
+    </script>
+    """
+    components.html(ga_code, height=0, width=0)
+
+inject_ga()
+
+# --- FONCTION DE VÉRIFICATION DE LICENCE (MODE DEBUG) ---
 def verify_license(key):
-    """Vérifie la licence via l'API Gumroad"""
     clean_key = key.strip()
     if clean_key == "BERLIN2025": return True
+    
     try:
+        # On tente d'abord avec le PERMALINK
+        payload = {
+            "product_permalink": GUMROAD_PERMALINK,
+            "license_key": clean_key,
+            "increment_uses_count": "false"
+        }
+        
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
-            data={"product_permalink": GUMROAD_PERMALINK, "license_key": clean_key, "increment_uses_count": "false"},
+            data=payload,
             headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN.strip()}"}
         )
+        
         data = response.json()
+        
+        # --- DEBUG : AFFICHER L'ERREUR SI ÇA ÉCHOUE ---
+        if not data.get("success"):
+            st.warning("⚠️ Message technique de Gumroad :")
+            st.json(data) # Affiche le JSON complet pour comprendre l'erreur
+            
         return True if (data.get("success") and not data.get("purchase", {}).get("refunded")) else False
-    except Exception: return False
+        
+    except Exception as e:
+        st.error(f"Erreur de connexion : {e}")
+        return False
 
 # --- CSS ---
 st.markdown("""
 <style>
     .stButton>button {width: 100%; border-radius: 5px; font-weight: bold;}
-    .step-header {font-weight: bold; font-size: 1.1em; margin-top: 15px; margin-bottom: 5px;}
-    .arrow-box {
-        text-align: center; background-color: #fff3cd; color: #856404;
-        padding: 15px; border: 2px solid #ffeeba; border-radius: 10px;
-        margin-top: 20px; margin-bottom: 20px; font-weight: bold; font-size: 1.2em;
-    }
     .trust-box {
         background-color: #e8f4f8; padding: 15px; border-radius: 10px; 
         border-left: 5px solid #3498db; margin-bottom: 20px; color: #2c3e50;
@@ -73,7 +99,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (AVEC IMPRESSUM) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€2.90**.")
@@ -96,7 +122,6 @@ with st.sidebar:
     if st.session_state.is_premium:
         st.success("Premium Active 🌟")
 
-    # --- SECTION LÉGALE ---
     st.write("---")
     st.markdown("### ⚖️ Legal & Contact")
     st.markdown("""
