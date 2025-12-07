@@ -9,6 +9,22 @@ from streamlit_drawable_canvas import st_canvas
 import uuid
 import requests
 
+# --- GOOGLE ANALYTICS HACK ---
+def inject_ga():
+    GA_ID = "G-F3PX9QD8EL" 
+    ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_ID}');
+    </script>
+    """
+    st.components.v1.html(ga_code, height=0, width=0)
+
+inject_ga() # Appeler la fonction
+
 # --- CONFIGURATION AVANCÉE SEO ---
 st.set_page_config(page_title="GermanFlatMate | German Rental Application Generator", page_icon="🇩🇪", layout="centered")
 
@@ -369,4 +385,5 @@ with st.expander("Is my data safe?"):
     st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
 
 st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
+
 
