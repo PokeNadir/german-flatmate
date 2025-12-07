@@ -9,8 +9,19 @@ from streamlit_drawable_canvas import st_canvas
 import uuid
 import requests
 
-# --- CONFIGURATION ---
-st.set_page_config(page_title="GermanFlatMate Pro", page_icon="🇩🇪", layout="centered")
+# --- CONFIGURATION AVANCÉE SEO ---
+st.set_page_config(page_title="GermanFlatMate | German Rental Application Generator", page_icon="🇩🇪", layout="centered")
+
+def inject_meta_tags():
+    meta_code = """
+    <head>
+        <meta name="description" content="Generate your German rental application (Bewerbungsmappe) in minutes. Perfect for expats without German skills or SCHUFA. Get your german flat!">
+        <meta name="keywords" content="German rental application, Bewerbungsmappe generator, Schufa help, expat berlin, flat hunting germany">
+    </head>
+    """
+    st.markdown(meta_code, unsafe_allow_html=True)
+
+inject_meta_tags()
 
 # ==========================================
 # ZONE DE CONFIGURATION GUMROAD
@@ -358,3 +369,4 @@ with st.expander("Is my data safe?"):
     st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
 
 st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
+
