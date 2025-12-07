@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from fpdf import FPDF
 import io
 import os
@@ -9,63 +8,20 @@ from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 import uuid
 import requests
-import pathlib
 
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(page_title="GermanFlatMate | German Rental Application Generator", page_icon="🇩🇪", layout="centered")
 
 # ==========================================
-# ZONE DE CONFIGURATION (VOS INFOS)
+# ZONE DE CONFIGURATION
 # ==========================================
 GUMROAD_PERMALINK = "germanflatmatepremium"
+
+# ⚠️ REMPLACEZ PAR VOTRE TOKEN GUMROAD
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
-GA_ID = "G-F3PX9QD8EL" 
+
+# NOTE: L'ID Google Analytics est maintenant géré par le fichier seo.py
 # ==========================================
-
-# --- INJECTION SEO & ANALYTICS DANS LE HEAD (HACK PUISSANT) ---
-def inject_ga_head():
-    """
-    Cette fonction insère les balises SEO et Analytics directement dans le <head> 
-    du fichier index.html de Streamlit sur le serveur.
-    """
-    try:
-        # 1. Localiser le fichier index.html de Streamlit
-        index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
-        
-        if not index_path.exists():
-            return 
-
-        # 2. Lire le contenu
-        html_content = index_path.read_text(encoding='utf-8')
-        
-        # 3. Vérifier si on a déjà fait l'injection pour ne pas dupliquer
-        if "" in html_content:
-            return
-
-        # 4. Le code à insérer (SEO + Google Analytics)
-        injection_code = f"""
-        <meta name="description" content="Generate your professional German rental application (Bewerbungsmappe) in minutes. Perfect for expats without German skills or SCHUFA. Get your german flat!">
-        <meta name="keywords" content="German rental application, Bewerbungsmappe generator, Schufa help, expat berlin, flat hunting germany">
-        
-        <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){{dataLayer.push(arguments);}}
-          gtag('js', new Date());
-          gtag('config', '{GA_ID}');
-        </script>
-        """
-        
-        # 5. Insérer juste avant la balise </head>
-        if "</head>" in html_content:
-            new_html = html_content.replace("</head>", f"{injection_code}\n</head>")
-            index_path.write_text(new_html, encoding='utf-8')
-
-    except Exception as e:
-        pass
-
-# On lance l'injection au démarrage
-inject_ga_head()
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
