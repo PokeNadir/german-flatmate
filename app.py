@@ -9,43 +9,63 @@ from PIL import Image
 from streamlit_drawable_canvas import st_canvas
 import uuid
 import requests
+import pathlib
 
-# --- GOOGLE ANALYTICS HACK ---
-def inject_ga():
-    GA_ID = "G-F3PX9QD8EL" 
-    ga_code = f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){{dataLayer.push(arguments);}}
-        gtag('js', new Date());
-        gtag('config', '{GA_ID}');
-    </script>
-    """
-    st.components.v1.html(ga_code, height=0, width=0)
-
-inject_ga() # Appeler la fonction
-
-# --- CONFIGURATION AVANCÉE SEO ---
+# --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(page_title="GermanFlatMate | German Rental Application Generator", page_icon="🇩🇪", layout="centered")
 
-def inject_meta_tags():
-    meta_code = """
-    <head>
-        <meta name="description" content="Generate your German rental application (Bewerbungsmappe) in minutes. Perfect for expats without German skills or SCHUFA. Get your german flat!">
-        <meta name="keywords" content="German rental application, Bewerbungsmappe generator, Schufa help, expat berlin, flat hunting germany">
-    </head>
-    """
-    st.markdown(meta_code, unsafe_allow_html=True)
-
-inject_meta_tags()
-
 # ==========================================
-# ZONE DE CONFIGURATION GUMROAD
+# ZONE DE CONFIGURATION (VOS INFOS)
 # ==========================================
 GUMROAD_PERMALINK = "germanflatmatepremium"
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
+GA_ID = "G-F3PX9QD8EL" 
 # ==========================================
+
+# --- INJECTION SEO & ANALYTICS DANS LE HEAD (HACK PUISSANT) ---
+def inject_ga_head():
+    """
+    Cette fonction insère les balises SEO et Analytics directement dans le <head> 
+    du fichier index.html de Streamlit sur le serveur.
+    """
+    try:
+        # 1. Localiser le fichier index.html de Streamlit
+        index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
+        
+        if not index_path.exists():
+            return 
+
+        # 2. Lire le contenu
+        html_content = index_path.read_text(encoding='utf-8')
+        
+        # 3. Vérifier si on a déjà fait l'injection pour ne pas dupliquer
+        if "" in html_content:
+            return
+
+        # 4. Le code à insérer (SEO + Google Analytics)
+        injection_code = f"""
+        <meta name="description" content="Generate your professional German rental application (Bewerbungsmappe) in minutes. Perfect for expats without German skills or SCHUFA. Get your german flat!">
+        <meta name="keywords" content="German rental application, Bewerbungsmappe generator, Schufa help, expat berlin, flat hunting germany">
+        
+        <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{GA_ID}');
+        </script>
+        """
+        
+        # 5. Insérer juste avant la balise </head>
+        if "</head>" in html_content:
+            new_html = html_content.replace("</head>", f"{injection_code}\n</head>")
+            index_path.write_text(new_html, encoding='utf-8')
+
+    except Exception as e:
+        pass
+
+# On lance l'injection au démarrage
+inject_ga_head()
 
 # --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
@@ -76,7 +96,6 @@ st.markdown("""
         background-color: #e8f4f8; padding: 15px; border-radius: 10px; 
         border-left: 5px solid #3498db; margin-bottom: 20px; color: #2c3e50;
     }
-    /* Petit style pour l'impressum */
     .impressum {font-size: 0.8em; color: #666;}
 </style>
 """, unsafe_allow_html=True)
@@ -121,7 +140,7 @@ with st.sidebar:
     if st.session_state.is_premium:
         st.success("Premium Active 🌟")
 
-    # --- SECTION LÉGALE AJOUTÉE ---
+    # --- SECTION LÉGALE ---
     st.write("---")
     st.markdown("### ⚖️ Legal & Contact")
     st.markdown("""
@@ -371,8 +390,7 @@ Mit freundlichen Grüßen,
 {st.session_state.email_context['name']}"""
     st.code(email_body, language="text")
 
-# ... (Après le bloc if generate_click ou à la toute fin du fichier)
-
+# --- FAQ & SEO FOOTER ---
 st.markdown("---")
 st.subheader("💡 Frequently Asked Questions")
 
@@ -386,6 +404,3 @@ with st.expander("Is my data safe?"):
     st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
 
 st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
-
-
-
