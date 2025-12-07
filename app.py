@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from fpdf import FPDF
 import io
 import os
@@ -385,5 +386,6 @@ with st.expander("Is my data safe?"):
     st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
 
 st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
+
 
 
