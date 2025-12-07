@@ -16,14 +16,14 @@ st.set_page_config(page_title="GermanFlatMate | German Rental Application Genera
 # ==========================================
 # ZONE DE CONFIGURATION
 # ==========================================
-GUMROAD_PERMALINK = "germanflatmatepremium"
+# IMPORTANT : Gumroad exige l'ID spécifique pour votre produit
+GUMROAD_PRODUCT_ID = "8Dz3oaoMvtqcLt4Q6967JA=="
+
 GUMROAD_ACCESS_TOKEN = "ULLfWW0d140WMJ2QO5T0x5PB3wySSKfzlyhDVkuOjNo" 
 GA_ID = "G-F3PX9QD8EL" 
 # ==========================================
 
 # --- GOOGLE ANALYTICS (MÉTHODE INFAILLIBLE) ---
-# On injecte le script directement dans le corps de la page.
-# C'est moins "propre" pour le SEO pur, mais 100% fonctionnel pour le tracking.
 def inject_ga():
     ga_code = f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
@@ -38,42 +38,51 @@ def inject_ga():
 
 inject_ga()
 
-# --- FONCTION DE VÉRIFICATION DE LICENCE (MODE DEBUG) ---
+# --- FONCTION DE VÉRIFICATION DE LICENCE ---
 def verify_license(key):
+    """Vérifie la licence via l'API Gumroad avec l'ID produit"""
     clean_key = key.strip()
-    if clean_key == "BERLIN2025": return True
     
-    try:
-        # On tente d'abord avec le PERMALINK
-        payload = {
-            "product_permalink": GUMROAD_PERMALINK,
-            "license_key": clean_key,
-            "increment_uses_count": "false"
-        }
+    # Backdoor pour vous (toujours utile pour tester sans payer)
+    if clean_key == "BERLIN2025": 
+        return True
         
+    try:
+        # CORRECTION : On utilise product_id comme demandé par l'erreur Gumroad
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
-            data=payload,
+            data={
+                "product_id": GUMROAD_PRODUCT_ID,  # <--- CHANGEMENT ICI
+                "license_key": clean_key,
+                "increment_uses_count": "false"
+            },
             headers={"Authorization": f"Bearer {GUMROAD_ACCESS_TOKEN.strip()}"}
         )
-        
         data = response.json()
         
-        # --- DEBUG : AFFICHER L'ERREUR SI ÇA ÉCHOUE ---
+        # En cas d'erreur, on l'affiche pour le debug (vous pourrez retirer ça plus tard)
         if not data.get("success"):
-            st.warning("⚠️ Message technique de Gumroad :")
-            st.json(data) # Affiche le JSON complet pour comprendre l'erreur
-            
-        return True if (data.get("success") and not data.get("purchase", {}).get("refunded")) else False
+            # On n'affiche le message technique que si ce n'est pas juste "clé invalide"
+            if "license_key" not in data.get("message", ""):
+                 st.warning(f"Note technique : {data.get('message')}")
         
-    except Exception as e:
-        st.error(f"Erreur de connexion : {e}")
+        if data.get("success") and not data.get("purchase", {}).get("refunded"):
+            return True
+        else:
+            return False
+    except Exception:
         return False
 
 # --- CSS ---
 st.markdown("""
 <style>
     .stButton>button {width: 100%; border-radius: 5px; font-weight: bold;}
+    .step-header {font-weight: bold; font-size: 1.1em; margin-top: 15px; margin-bottom: 5px;}
+    .arrow-box {
+        text-align: center; background-color: #fff3cd; color: #856404;
+        padding: 15px; border: 2px solid #ffeeba; border-radius: 10px;
+        margin-top: 20px; margin-bottom: 20px; font-weight: bold; font-size: 1.2em;
+    }
     .trust-box {
         background-color: #e8f4f8; padding: 15px; border-radius: 10px; 
         border-left: 5px solid #3498db; margin-bottom: 20px; color: #2c3e50;
@@ -104,8 +113,8 @@ with st.sidebar:
     st.header("💎 Premium Access")
     st.write("Unlock the watermark-free & editable version for **€2.90**.")
     
-    buy_link = f"https://germanflatmate.gumroad.com/l/{GUMROAD_PERMALINK}"
-    st.markdown(f"[👉 **Purchase License Key**]({buy_link})") 
+    # Lien d'achat (On garde le permalink pour l'URL humaine, c'est plus joli)
+    st.markdown(f"[👉 **Purchase License Key**](https://germanflatmate.gumroad.com/l/premium)") 
     
     st.write("---")
     input_code = st.text_input("Enter License Key (from email):").strip()
@@ -116,7 +125,7 @@ with st.sidebar:
             st.success("✅ License Valid!")
             st.rerun()
         else:
-            st.error("❌ Invalid Key.")
+            st.error("❌ Invalid License Key.")
             st.session_state.is_premium = False
             
     if st.session_state.is_premium:
@@ -161,227 +170,3 @@ def convert_to_pdf_bytes(uploaded_file):
                 image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
             
             img_pdf = FPDF(); img_pdf.add_page()
-            
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                image.save(tmp_file.name, format='JPEG', quality=75, optimize=True)
-                tmp_path = tmp_file.name
-
-            try:
-                img_pdf.image(tmp_path, x=10, y=10, w=190)
-            finally:
-                if os.path.exists(tmp_path): os.unlink(tmp_path)
-            
-            apply_watermark_diagonal(img_pdf)
-            return PdfReader(io.BytesIO(bytes(img_pdf.output())))
-        except Exception: return None
-
-# --- DICTIONNAIRES ---
-jobs_mapping = {
-    "Software Engineer": "Softwareentwickler", "Student": "Student", "Project Manager": "Projektmanager",
-    "Data Scientist": "Data Scientist", "Marketing Manager": "Marketing Manager", "Consultant": "Unternehmensberater",
-    "Teacher": "Lehrer", "Doctor (Medical)": "Arzt", "Nurse": "Krankenpfleger", "Architect": "Architekt",
-    "Designer": "Designer", "Sales Manager": "Vertriebsleiter", "Accountant": "Buchhalter",
-    "Engineer (General)": "Ingenieur", "Researcher": "Forscher", "Other": "Other"
-}
-german_mapping = {"Single": "Ledig", "Married": "Verheiratet", "Partnership": "Lebensgemeinschaft", "Yes": "Ja", "No": "Nein"}
-
-# === INPUTS ===
-st.subheader("1️⃣ Personal Details")
-col1, col2 = st.columns(2)
-with col1:
-    full_name = st.text_input("Full Name", placeholder="Jean Dupont")
-    selected_job = st.selectbox("Profession", list(jobs_mapping.keys()))
-    custom_job = ""
-    if selected_job == "Other": custom_job = st.text_input("Profession in German", placeholder="Bäcker")
-    move_in_date = st.date_input("Desired Move-in Date")
-with col2:
-    income = st.number_input("Net Monthly Income (€)", min_value=0, value=2500)
-    family_status = st.selectbox("Marital Status", ["Single", "Married", "Partnership"])
-    st.caption("Includes you, partner, and kids.")
-    people_count = st.number_input("Total people", min_value=1, value=1)
-
-st.subheader("2️⃣ Legal Questions")
-c1, c2 = st.columns(2)
-with c1:
-    smoker = st.radio("Smoker?", ["No", "Yes"], horizontal=True)
-    pets = st.radio("Pets?", ["No", "Yes"], horizontal=True)
-with c2:
-    insolvency = st.radio("Insolvency?", ["No", "Yes"], horizontal=True)
-    eviction = st.radio("Evictions?", ["No", "Yes"], horizontal=True)
-
-st.subheader("3️⃣ Documents")
-no_schufa_mode = st.checkbox("I am new to Germany (No SCHUFA).")
-u_income = st.file_uploader("Proof of Income", type=["pdf", "jpg", "png"], accept_multiple_files=True)
-u_id = st.file_uploader("ID Copy", type=["pdf", "jpg", "png"], accept_multiple_files=True)
-u_schufa = None
-if not no_schufa_mode:
-    u_schufa = st.file_uploader("SCHUFA", type=["pdf", "jpg", "png"], accept_multiple_files=True)
-
-st.subheader("4️⃣ Signature")
-st.caption("Please sign below (required):")
-canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#ffffff", height=150, width=400, drawing_mode="freedraw", key="canvas")
-
-st.markdown("---")
-agree_terms = st.checkbox("I confirm that all provided information is true. GermanFlatMate is a tool and assumes no liability for the accuracy of the generated documents.")
-
-generate_click = st.button("🚀 GENERATE APPLICATION PACKAGE", type="primary")
-
-# === GENERATION ===
-if generate_click:
-    if not full_name:
-        st.error("⚠️ Please enter your full name.")
-    elif canvas_result.image_data is None:
-        st.error("⚠️ Please sign the document.")
-    elif not agree_terms:
-        st.error("⚠️ You must confirm that the information is true to proceed.")
-    else:
-        job_de = custom_job if (selected_job == "Other" and custom_job) else jobs_mapping.get(selected_job, "Angestellter")
-        
-        class PDF(FPDF):
-            def header(self):
-                self.set_fill_color(0, 51, 102)
-                self.rect(0, 0, 210, 30, 'F')
-                self.set_text_color(255, 255, 255); self.set_font('Helvetica', 'B', 20); self.set_y(10)
-                self.cell(0, 10, 'Bewerbungsmappe', ln=True, align='C'); self.ln(20)
-                apply_watermark_diagonal(self)
-
-        pdf = PDF(); pdf.add_page()
-        
-        pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 11)
-        pdf.multi_cell(0, 6, f"Sehr geehrte Damen und Herren,\n\nhiermit bewerbe ich mich ({full_name}) verbindlich fuer die Wohnung. Anbei finden Sie meine vollstaendigen Unterlagen.", align='L')
-        pdf.ln(5)
-        
-        pdf.set_text_color(0, 51, 102); pdf.set_font("Helvetica", 'B', 14)
-        pdf.cell(0, 8, "1. Angaben zur Person (Personal Details)", ln=1)
-        
-        pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 11)
-        def add_row(l, v):
-            pdf.set_font("Helvetica", 'B', 11); pdf.cell(80, 7, l, border=0)
-            pdf.set_font("Helvetica", '', 11); pdf.cell(0, 7, str(v), ln=1, border=0)
-        
-        add_row("Name:", full_name); add_row("Beruf:", job_de)
-        add_row("Nettoeinkommen:", f"{income} EUR / Monat"); add_row("Familienstand:", german_mapping[family_status])
-        add_row("Einziehende Personen:", str(people_count)); add_row("Einzugstermin:", move_in_date.strftime("%d.%m.%Y"))
-        pdf.ln(5)
-        
-        pdf.set_text_color(0, 51, 102); pdf.set_font("Helvetica", 'B', 14)
-        pdf.cell(0, 8, "2. Weitere Angaben (Legal Declarations)", ln=1)
-        
-        pdf.set_text_color(0, 0, 0); pdf.set_font("Helvetica", '', 11)
-        add_row("Raucher:", german_mapping[smoker]); add_row("Haustiere:", german_mapping[pets])
-        add_row("Insolvenzverfahren:", german_mapping[insolvency]); add_row("Mietschulden:", german_mapping[eviction])
-        pdf.ln(10)
-        
-        pdf.set_font("Helvetica", '', 10); pdf.multi_cell(0, 5, "Ich bestaetige, dass die oben gemachten Angaben wahrheitsgemaess sind."); pdf.ln(5)
-        
-        if canvas_result.image_data is not None:
-            sign_img = Image.fromarray(canvas_result.image_data.astype('uint8'))
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_sign:
-                sign_img.save(tmp_sign.name, format="PNG")
-                tmp_sign_path = tmp_sign.name
-            try:
-                pdf.image(tmp_sign_path, x=10, w=50)
-            finally:
-                if os.path.exists(tmp_sign_path): os.unlink(tmp_sign_path)
-            pdf.cell(0, 5, "Unterschrift", ln=1)
-        
-        master = bytes(pdf.output())
-        merger = PdfWriter(); merger.append(io.BytesIO(master))
-        
-        if no_schufa_mode:
-            p2 = FPDF(); p2.add_page()
-            p2.set_fill_color(0, 51, 102); p2.rect(0, 0, 210, 30, 'F')
-            p2.set_text_color(255, 255, 255); p2.set_font("Helvetica", 'B', 20); p2.set_y(10)
-            p2.cell(0, 10, 'Bonitaet (Credit Score)', ln=True, align='C'); p2.ln(25)
-            apply_watermark_diagonal(p2)
-            p2.set_text_color(0, 0, 0); p2.set_font("Helvetica", '', 12)
-            p2.multi_cell(0, 7, f"Da ich neu in Deutschland bin, habe ich noch keine SCHUFA.\nAnbei meine Einkommensnachweise.\n\n{full_name}")
-            merger.append(io.BytesIO(bytes(p2.output())))
-        
-        def add_files(files):
-            if files:
-                for f in files:
-                    p = convert_to_pdf_bytes(f)
-                    if p: merger.append(p)
-        add_files(u_income)
-        if not no_schufa_mode: add_files(u_schufa)
-        add_files(u_id)
-        
-        if not st.session_state.is_premium:
-            owner_pwd = str(uuid.uuid4())
-            merger.encrypt("", owner_pwd)
-
-        buf = io.BytesIO(); merger.write(buf)
-        st.session_state.final_pdf_bytes = buf.getvalue()
-        st.session_state.pdf_generated = True
-        st.session_state.email_context = {"name": full_name}
-        st.balloons()
-
-# === RESULTATS ===
-if st.session_state.pdf_generated:
-    st.markdown("---")
-    
-    if not st.session_state.is_premium:
-        st.warning("⚠️ **DEMO MODE:** Your PDF is locked and watermarked. Buy Premium to remove restrictions.")
-    else:
-        st.success("✅ **PREMIUM MODE:** Clean & Unlocked PDF generated!")
-        
-    clean_name = st.session_state.email_context["name"].replace(" ", "_")
-    
-    st.download_button(
-        label="⬇️ Download PDF (Bewerbungsmappe)",
-        data=st.session_state.final_pdf_bytes,
-        file_name=f"Bewerbung_{clean_name}.pdf",
-        mime="application/pdf"
-    )
-
-    st.markdown("""
-    <div class="arrow-box">
-        👇 WAIT! DON'T CLOSE YET! 👇<br>
-        Scroll down to get your Email Text
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.subheader("📧 Step 2: Send the Email")
-    
-    st.info("""
-    **🇬🇧 English Translation:**
-    "Dear Sir/Madam, Thank you for the opportunity to apply. I am very interested. 
-    Attached is my complete dossier (Self-disclosure, Income proof, ID). 
-    Sincerely, [Your Name]"
-    """)
-
-    st.markdown('<p class="step-header">1. Copy Subject Line (Betreff)</p>', unsafe_allow_html=True)
-    st.code(f"Bewerbung für die Wohnung - {st.session_state.email_context['name']}", language="text")
-
-    st.markdown('<p class="step-header">2. Copy Message Body</p>', unsafe_allow_html=True)
-    email_body = f"""Sehr geehrte Damen und Herren,
-
-vielen Dank für die Möglichkeit, mich für diese Wohnung zu bewerben.
-Ich habe großes Interesse an dem Objekt.
-
-Im Anhang finden Sie meine vollständige Bewerbungsmappe (als einzelne PDF-Datei), inklusive:
-- Mieterselbstauskunft
-- Einkommensnachweise
-- Identitätsnachweis
-
-Für Rückfragen stehe ich Ihnen gerne zur Verfügung.
-
-Mit freundlichen Grüßen,
-{st.session_state.email_context['name']}"""
-    st.code(email_body, language="text")
-
-# --- FAQ & SEO FOOTER ---
-st.markdown("---")
-st.subheader("💡 Frequently Asked Questions")
-
-with st.expander("How does this tool help me find a flat in Germany?"):
-    st.write("German landlords expect a standard 'Bewerbungsmappe'. Sending just an email isn't enough. GermanFlatMate generates the Cover Letter (Anschreiben) and Self-Disclosure (Mieterselbstauskunft) automatically in perfect German.")
-
-with st.expander("What if I don't have a SCHUFA score?"):
-    st.write("This is a common problem for expats and students. Our tool includes a specific legal clause explaining your situation to the landlord and offering alternative proof of solvency (like bank statements), which increases your chances significantly.")
-
-with st.expander("Is my data safe?"):
-    st.write("Yes. GermanFlatMate runs in your browser session. We do not store your personal data, passports, or payslips. Everything is deleted the moment you close the tab.")
-
-st.caption("Keywords: Rental Application Germany, Mieterselbstauskunft English, Schufa Alternative, Berlin Housing, Munich Flat Hunting, Expat Housing Germany.")
